@@ -41,8 +41,6 @@ logger = logging.getLogger(__name__)
 class BlackboardDownload:
     """Blackboard download job."""
 
-    _last_downloaded = datetime.fromtimestamp(0, tz=timezone.utc)
-
     def __init__(self, sess: BlackboardExtended,
                  download_location: Path,
                  last_downloaded: datetime | None = None,
@@ -56,7 +54,8 @@ class BlackboardDownload:
 
         :param BlackboardExtended sess: UCLan BB user session
         :param (str / Path) download_location: Where files will be stored
-        :param str last_downloaded: Files modified before are ignored
+        :param last_downloaded: Retained for compatibility; downloads are based
+            on whether the local file exists.
         :param min_year: Courses created before are ignored
         """
 
@@ -64,11 +63,9 @@ class BlackboardDownload:
         self._user_id = sess.user_id
         self._download_location = download_location
         self._min_year = min_year
+        _ = last_downloaded
         self.executor = SyncExecutor()
         self.cancelled = False
-
-        if last_downloaded is not None:
-            self._last_downloaded = last_downloaded
 
     def download(self) -> datetime | None:
         """Retrieve the user's courses, and start download of all contents
@@ -93,8 +90,7 @@ class BlackboardDownload:
         courses = self._sess.ex_fetch_courses(user_id=self.user_id,
                                               result_filter=course_filter)
 
-        job = DownloadJob(session=self._sess,
-                          last_downloaded=self._last_downloaded)
+        job = DownloadJob(session=self._sess)
 
         for course in courses:
             if self.cancelled:

@@ -23,6 +23,7 @@ from blackboard_sync.content import (
 )
 
 from blackboard_sync.content.base import FStream
+from blackboard_sync.content.attachment import Attachment
 
 
 def assert_written(path, content):
@@ -178,6 +179,66 @@ def test_content_file(api_path: BBContentPath):
     with mock.patch(get_module('document.Document')) as p:
         Content(content, api_path, job)
         p.assert_called_once_with(content, api_path, job)
+
+
+def test_old_content_is_processed():
+    api_path = BBContentPath(course_id="course-id", content_id="content-id")
+    job = mock.Mock()
+    job.has_changed.return_value = False
+    content = BBCourseContent(
+        id=api_path['content_id'],
+        title="Old document",
+        modified="2000-01-01T00:00:00Z",
+        availability=BBAvailability(available='Yes'),
+        contentHandler=BBContentHandler(id=BBResourceType.Document),
+    )
+
+    with mock.patch(get_module('document.Document')) as handler:
+        Content(content, api_path, job)
+
+    handler.assert_called_once_with(content, api_path, job)
+    job.has_changed.assert_not_called()
+
+
+def test_attachment_write_skips_existing_file(tmp_path):
+    api_path = BBContentPath(course_id="course-id", content_id="content-id")
+    job = mock.Mock()
+    executor = mock.Mock()
+    attachment = Attachment(
+        BBAttachment(
+            id="attachment-id", fileName="exam.pdf", mimeType="application/pdf"
+        ),
+        api_path,
+        job,
+    )
+    (tmp_path / "exam.pdf").write_bytes(b"already downloaded")
+
+    attachment.write(tmp_path, executor)
+
+    job.session.download.assert_not_called()
+    executor.submit.assert_not_called()
+
+
+def test_attachment_write_downloads_missing_file(tmp_path):
+    api_path = BBContentPath(course_id="course-id", content_id="content-id")
+    job = mock.Mock()
+    executor = mock.Mock()
+    attachment = Attachment(
+        BBAttachment(
+            id="attachment-id", fileName="exam.pdf", mimeType="application/pdf"
+        ),
+        api_path,
+        job,
+    )
+    target_dir = tmp_path / "new-folder"
+
+    attachment.write(target_dir, executor)
+
+    job.session.download.assert_called_once_with(
+        attachment_id="attachment-id", **api_path
+    )
+    executor.submit.assert_called_once()
+    assert target_dir.is_dir()
 
 
 @given(...)

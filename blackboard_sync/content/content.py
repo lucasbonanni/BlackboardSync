@@ -29,7 +29,7 @@ class Content:
         self.body = None
         self.handler = None
 
-        self.ignore = not Content.should_download(content, job)
+        self.ignore = not Content.should_download(content)
 
         if self.ignore:
             return
@@ -74,19 +74,14 @@ class Content:
             self.body.write(path, executor)
 
     @staticmethod
-    def should_download(content: BBCourseContent, job: DownloadJob) -> bool:
-        changed = job.has_changed(content.modified)
-        has_children = bool(content.hasChildren)
+    def should_download(content: BBCourseContent) -> bool:
         available = bool(content.availability)
 
         if not available:
             logger.info("Skipping content '%s' (id=%s): unavailable",
                         content.title, content.id)
-        elif not changed and not has_children:
-            logger.info("Skipping content '%s' (id=%s): unchanged and has no children",
-                        content.title, content.id)
 
-        return (changed or has_children) and available
+        return available
 
     @staticmethod
     def get_handler(content_handler: BBContentHandler | None):

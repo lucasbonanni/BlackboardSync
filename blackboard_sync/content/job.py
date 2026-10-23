@@ -1,22 +1,10 @@
-from datetime import datetime, timezone
-
 from ..blackboard import BlackboardExtended
 
 
-UNIX_EPOCH = datetime.fromtimestamp(0, tz=timezone.utc)
-
-
 class DownloadJob:
-    def __init__(self, session: BlackboardExtended,
-                 last_downloaded: datetime | None):
-        self._last_downloaded = last_downloaded or UNIX_EPOCH
+    def __init__(self, session: BlackboardExtended):
         self._session = session
         self._cancelled = False
-
-    def has_changed(self, modified: datetime | None) -> bool:
-        if modified is not None:
-            return (modified >= self._last_downloaded)
-        return True
 
     @property
     def session(self) -> BlackboardExtended:

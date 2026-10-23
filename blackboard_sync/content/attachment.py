@@ -1,5 +1,6 @@
 import uuid
 import mimetypes
+import logging
 
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -10,12 +11,17 @@ from .base import BStream
 from .api_path import BBContentPath
 from .job import DownloadJob
 
+logger = logging.getLogger(__name__)
+
 
 class Attachment(BStream):
     """File attached to a content."""
 
     def __init__(self, attachment: BBAttachment, api_path: BBContentPath,
                  job: DownloadJob):
+        self._attachment_id = attachment.id
+        self._api_path = api_path
+        self._job = job
         filename = attachment.fileName or str(uuid.uuid1())
         name_ext = '.' + filename.split('.')[-1]
 
@@ -29,8 +35,14 @@ class Attachment(BStream):
             real_ext = possible_ext[0] if possible_ext else '.txt'
             self.filename = filename + real_ext
 
-        self.stream = job.session.download(attachment_id=attachment.id,
-                                           **api_path)
-
     def write(self, path: Path, executor: ThreadPoolExecutor) -> None:
-        super().write_base(path / self.filename, executor, self.stream)
+        target = path / self.filename
+        if target.is_file():
+            logger.info("Skipping existing attachment %s", target)
+            return
+
+        target.parent.mkdir(exist_ok=True, parents=True)
+        stream = self._job.session.download(
+            attachment_id=self._attachment_id, **self._api_path
+        )
+        super().write_base(target, executor, stream)

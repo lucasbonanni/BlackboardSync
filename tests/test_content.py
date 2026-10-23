@@ -4,7 +4,7 @@ from unittest import mock
 from hypothesis import given
 from hypothesis import assume
 
-from blackboard.blackboard import (
+from blackboard_sync.blackboard import (
     BBCourse,
     BBCourseContent,
     BBContentHandler,

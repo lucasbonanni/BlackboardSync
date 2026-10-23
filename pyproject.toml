@@ -30,7 +30,6 @@ dependencies = [
     "lxml>=4.7.1",
     "requests>=2.25.0",
     "packaging>=23.1",
-    "bblearn>=0.3.0",
     "whoisit",
     "bwfilters"
 ]
@@ -54,8 +53,9 @@ packages = [
     "blackboard_sync",
     "blackboard_sync.qt",
     "blackboard_sync.content",
+    "blackboard_sync.blackboard",
     "blackboard_sync.assets"
 ]
 
 [tool.mypy]
-plugins = ["pydantic.mypy", "tiny_api_client.mypy"]
+plugins = ["pydantic.mypy"]

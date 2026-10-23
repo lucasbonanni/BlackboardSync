@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-from blackboard.blackboard import BBCourse
+from ..blackboard import BBCourse
 
 from .api_path import BBContentPath
 from .job import DownloadJob
@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 class Course:
     def __init__(self, course: BBCourse, job: DownloadJob):
-        logger.info(f"<{course.code}> - <{course.title}>")
+        logger.info("Starting course %s (%s, id=%s)",
+                course.title, course.code, course.id)
 
         self.ignore = not course.availability
 
@@ -25,6 +26,8 @@ class Course:
         self.title = course.title or 'Untitled Course'
 
         contents = job.session.fetch_contents(course_id=course.id)
+        logger.info("Found %d top-level content items in course %s",
+                len(contents), course.title)
         self.children = []
 
         for content in contents:

@@ -134,6 +134,16 @@ class WebDavFile(BStream):
         self.extension = mimetypes.guess_extension(content_type)
         self.valid = validate_webdav_response(self.stream, link.href,
                                               job.session.instance_url)
+        if not self.valid:
+            logger.warning(
+                "Skipping WebDAV file '%s' (status=%s, content_type=%s, "
+                "content_length=%s, same_instance=%s)",
+                self.title,
+                self.stream.status_code,
+                self.stream.headers.get('Content-Type', ''),
+                self.stream.headers.get('Content-Length', 'unknown'),
+                link.href.startswith(job.session.instance_url)
+            )
 
     def write(self, path: Path, executor: ThreadPoolExecutor) -> None:
         if self.valid:

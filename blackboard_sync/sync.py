@@ -30,8 +30,7 @@ from datetime import datetime, timezone, timedelta
 
 from requests.cookies import RequestsCookieJar
 
-from blackboard.api_extended import BlackboardExtended
-from blackboard.exceptions import BBUnauthorizedError, BBForbiddenError
+from .blackboard import BlackboardExtended, BBUnauthorizedError, BBForbiddenError
 
 from .config import SyncConfig
 from .download import BlackboardDownload
@@ -216,12 +215,12 @@ class BlackboardSync:
 
         log_path = log_dir / filename
 
-        logger = logging.getLogger(__name__)
+        package_logger = logging.getLogger("blackboard_sync")
 
         file_handler = logging.FileHandler(log_path)
-        file_handler.setLevel(logging.WARNING)
+        file_handler.setLevel(logging.INFO)
 
-        logger.addHandler(file_handler)
+        package_logger.addHandler(file_handler)
 
     def force_sync(self) -> None:
         """Force Sync thread to start download job ASAP."""

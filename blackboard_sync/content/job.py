@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from blackboard.api_extended import BlackboardExtended
+from ..blackboard import BlackboardExtended
 
 
 UNIX_EPOCH = datetime.fromtimestamp(0, tz=timezone.utc)

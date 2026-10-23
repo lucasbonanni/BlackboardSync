@@ -4,7 +4,7 @@ import mimetypes
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from blackboard.blackboard import BBAttachment
+from ..blackboard import BBAttachment
 
 from .base import BStream
 from .api_path import BBContentPath

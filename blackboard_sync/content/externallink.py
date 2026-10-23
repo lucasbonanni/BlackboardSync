@@ -2,7 +2,7 @@ import platform
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from blackboard.blackboard import BBCourseContent
+from ..blackboard import BBCourseContent
 
 from .base import FStream
 from .job import DownloadJob

@@ -26,8 +26,9 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 
-from blackboard.api_extended import BlackboardExtended
-from blackboard.filters import BBMembershipFilter, BWFilter
+from bwfilters import BWFilter
+
+from .blackboard import BlackboardExtended, BBMembershipFilter
 
 from .executor import SyncExecutor
 from .content.job import DownloadJob

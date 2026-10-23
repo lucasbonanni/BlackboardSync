@@ -5,12 +5,12 @@ from pydantic import ValidationError
 from requests import RequestException
 from concurrent.futures import ThreadPoolExecutor
 
-from blackboard.blackboard import (
+from ..blackboard import (
     BBCourseContent,
     BBResourceType,
     BBContentHandler
 )
-from blackboard.exceptions import BBBadRequestError, BBForbiddenError
+from ..blackboard import BBBadRequestError, BBForbiddenError
 
 from . import folder, document, externallink, body, unhandled
 
@@ -26,8 +26,6 @@ class Content:
     def __init__(self, content: BBCourseContent, api_path: BBContentPath,
                  job: DownloadJob) -> None:
 
-        logger.info(f"{content.title}[{content.contentHandler}]")
-
         self.body = None
         self.handler = None
 
@@ -38,6 +36,8 @@ class Content:
 
         Handler = Content.get_handler(content.contentHandler)
         self.title = content.title_path_safe.replace('.', '_')
+        logger.info("Processing content '%s' (id=%s, handler=%s)",
+                    content.title, content.id, content.contentHandler)
 
         try:
             logger.debug("Starting handler for %s", content.title)
@@ -75,12 +75,18 @@ class Content:
 
     @staticmethod
     def should_download(content: BBCourseContent, job: DownloadJob) -> bool:
-        or_guards = [
-            job.has_changed(content.modified),
-            content.hasChildren,
-        ]
+        changed = job.has_changed(content.modified)
+        has_children = bool(content.hasChildren)
+        available = bool(content.availability)
 
-        return any(or_guards) and bool(content.availability)
+        if not available:
+            logger.info("Skipping content '%s' (id=%s): unavailable",
+                        content.title, content.id)
+        elif not changed and not has_children:
+            logger.info("Skipping content '%s' (id=%s): unchanged and has no children",
+                        content.title, content.id)
+
+        return (changed or has_children) and available
 
     @staticmethod
     def get_handler(content_handler: BBContentHandler | None):

@@ -1,12 +1,15 @@
+import logging
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from blackboard.blackboard import BBCourseContent
+from ..blackboard import BBCourseContent
 
 from .base import FStream
 from .job import DownloadJob
 from .templates import create_body
 from .webdav import WebDavFile, ContentParser
+
+logger = logging.getLogger(__name__)
 
 
 class ContentBody(FStream):
@@ -22,6 +25,8 @@ class ContentBody(FStream):
 
         title = content.title or "Untitled"
         parser = ContentParser(content.body, job.session.instance_url)
+        logger.info("Content '%s': found %d link(s) in body",
+                title, len(parser.links))
 
         self.body = create_body(title, parser.body, parser.text)
         self.children = [WebDavFile(ln, job) for ln in parser.links]

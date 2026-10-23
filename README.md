@@ -56,7 +56,8 @@ or would like to see which universities are currently supported,
 - Cross-platform
   - Linux, Windows, and macOS ready
 
-*: Except videos
+* Videos embedded in Blackboard content are downloaded when hosted by the same
+  Blackboard instance.
 
 
 ## Installation

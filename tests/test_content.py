@@ -24,6 +24,7 @@ from blackboard_sync.content import (
 
 from blackboard_sync.content.base import FStream
 from blackboard_sync.content.attachment import Attachment
+from blackboard_sync.content.webdav import ContentParser, validate_webdav_response
 
 
 def assert_written(path, content):
@@ -239,6 +240,44 @@ def test_attachment_write_downloads_missing_file(tmp_path):
     )
     executor.submit.assert_called_once()
     assert target_dir.is_dir()
+
+
+def test_content_parser_finds_embedded_video_webdav_link():
+    base_url = "https://learn.example.edu"
+    href = f"{base_url}/bbcswebdav/pid-1-dt-content-rid-2/xid-2"
+    second_href = f"{base_url}/bbcswebdav/pid-1-dt-content-rid-3/xid-3"
+    body = (
+        '<a data-bbtype="attachment" '
+        'data-bbfile="{&quot;displayName&quot;:&quot;lecture.mp4&quot;}" '
+        f'href="{href}"><video src="{href}"></video></a>'
+        f'<video aria-label="seminar.mp4" src="{second_href}"></video>'
+    )
+
+    parser = ContentParser(body, base_url)
+
+    assert parser.links == [
+        (href, "lecture.mp4"),
+        (second_href, "seminar.mp4"),
+    ]
+    assert 'href="lecture.mp4"' in parser.body
+    assert 'src="lecture.mp4"' in parser.body
+    assert 'src="seminar.mp4"' in parser.body
+
+
+def test_webdav_accepts_large_video_response():
+    response = mock.Mock(
+        status_code=200,
+        headers={
+            "Content-Type": "video/mp4",
+            "Content-Length": "109368442",
+        },
+    )
+
+    assert validate_webdav_response(
+        response,
+        "https://learn.example.edu/bbcswebdav/video.mp4",
+        "https://learn.example.edu",
+    )
 
 
 @given(...)

@@ -21,6 +21,7 @@ Parse an html to look for links
 
 
 import logging
+import json
 import mimetypes
 import time
 from pathlib import Path
@@ -52,7 +53,16 @@ class ContentParser:
         if find_links:
             a = self._find_replace(soup, 'a', 'href', base_url)
             img = self._find_replace(soup, 'img', 'src', base_url)
-            self._links = [*a, *img]
+            video = self._find_replace(soup, 'video', 'src', base_url)
+            links_by_url = {}
+            for link in [*a, *img, *video]:
+                previous = links_by_url.get(link.href)
+                fallback_title = unquote(link.href.rsplit('/', 1)[-1])
+                if (previous is None or
+                        (previous.text == fallback_title
+                         and link.text != fallback_title)):
+                    links_by_url[link.href] = link
+            self._links = list(links_by_url.values())
 
         self._body = str(soup)
         self._text = soup.text
@@ -68,11 +78,26 @@ class ContentParser:
             if uri:
                 # Handle url-encoding
                 filename = unquote(uri.split('/')[-1])
-                links.append(Link(href=uri, text=filename))
+                title = el.get('aria-label') or filename
+                bbfile = el.get('data-bbfile')
+                if not bbfile and el.name == 'video':
+                    parent = el.find_parent('a')
+                    if parent is not None:
+                        bbfile = parent.get('data-bbfile')
+                        title = parent.get('aria-label') or title
+                if bbfile:
+                    try:
+                        metadata = json.loads(bbfile)
+                    except json.JSONDecodeError:
+                        metadata = {}
+                    title = (metadata.get('displayName')
+                             or metadata.get('fileName')
+                             or title)
+                links.append(Link(href=uri, text=title))
 
                 # Replace for local instance
                 if uri.startswith(base_url):
-                    el[attr] = filename
+                    el[attr] = title
         return links
 
     @property
@@ -90,22 +115,7 @@ class ContentParser:
 
 def validate_webdav_response(response: Response,
                              link: str, base_url: str) -> bool:
-    if response.status_code == 200:
-        h = response.headers
-        content_type = h.get('Content-Type', '')
-        content_len = int(h.get('Content-Length', 0))
-
-        # TODO: feature: select mime types
-        len_limit = 1024 * 1024 * 20  # 20 MB
-
-        filters = [
-            link.startswith(base_url),
-            'video' not in content_type,
-            content_len < len_limit
-        ]
-
-        return all(filters)
-    return False
+    return response.status_code == 200 and link.startswith(base_url)
 
 
 class WebDavFile(BStream):

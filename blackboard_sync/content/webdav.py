@@ -20,7 +20,9 @@ Parse an html to look for links
 # MA  02110-1301, USA.
 
 
+import logging
 import mimetypes
+import time
 from pathlib import Path
 from requests import Response
 from bs4 import BeautifulSoup
@@ -31,6 +33,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .base import BStream
 from .job import DownloadJob
+
+
+logger = logging.getLogger(__name__)
 
 
 class Link(NamedTuple):
@@ -107,7 +112,24 @@ class WebDavFile(BStream):
     """A Blackboard WebDav file which can be downloaded directly"""
     def __init__(self, link: Link, job: DownloadJob) -> None:
         self.title = sanitize_filename(link.text, replacement_text="_")
-        self.stream = job.session.download_webdav(webdav_url=link.href)
+        started_at = time.monotonic()
+        logger.info("Starting WebDAV request for %s", self.title)
+        try:
+            self.stream = job.session.download_webdav(webdav_url=link.href)
+        except Exception:
+            logger.exception(
+                "WebDAV request failed for %s after %.1f seconds",
+                self.title,
+                time.monotonic() - started_at
+            )
+            raise
+
+        logger.info(
+            "Received WebDAV response for %s (status %s, %.1f seconds)",
+            self.title,
+            self.stream.status_code,
+            time.monotonic() - started_at
+        )
         content_type = self.stream.headers.get('Content-Type', 'text/plain')
         self.extension = mimetypes.guess_extension(content_type)
         self.valid = validate_webdav_response(self.stream, link.href,

@@ -107,6 +107,7 @@ class BlackboardDownload:
 
         self.executor.shutdown(wait=True, cancel_futures=self.cancelled)
         self.executor.raise_exceptions()
+        logger.info("Blackboard content download complete")
 
         return start_time if not self.cancelled else None
 

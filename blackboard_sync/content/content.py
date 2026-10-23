@@ -40,17 +40,21 @@ class Content:
         self.title = content.title_path_safe.replace('.', '_')
 
         try:
+            logger.debug("Starting handler for %s", content.title)
             self.handler = Handler(content, api_path, job)
+            logger.debug("Finished handler for %s", content.title)
         except (ValidationError, JSONDecodeError,
                 BBBadRequestError, BBForbiddenError):
             logger.exception(f"Error fetching {content.title}")
 
         try:
             if content.body:
+                logger.info("Processing body for %s", content.title)
                 self.body = body.ContentBody(content, None, job)
+                logger.info("Finished processing body for %s", content.title)
         except (ValidationError, JSONDecodeError,
                 BBBadRequestError, BBForbiddenError, RequestException):
-            logger.warning(f"Error fetching body of {content.title}")
+            logger.exception("Error processing body of %s", content.title)
 
     def write(self, path: Path, executor: ThreadPoolExecutor) -> None:
         if self.ignore:
